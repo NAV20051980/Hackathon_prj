@@ -788,3 +788,251 @@ body {
   from { opacity: 0; transform: scale(0.95) translateY(10px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
+
+/* --- Auth Screen Styles --- */
+.authContainer {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.authCard {
+  width: 100%;
+  max-width: 420px;
+  padding: 40px;
+  text-align: center;
+  background: rgba(15, 23, 42, 0.7) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255, 174, 0, 0.2) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5) !important;
+}
+.authHeader {
+  margin-bottom: 32px;
+}
+.authSub {
+  color: var(--judge);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+.authForm {
+  text-align: left;
+}
+.inputGroup {
+  margin-bottom: 20px;
+}
+.inputGroup label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.inputArea {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: white;
+  transition: all 0.2s;
+}
+.inputArea:focus {
+  outline: none;
+  border-color: var(--judge);
+  background: rgba(255, 174, 0, 0.05);
+}
+.authBtn {
+  width: 100%;
+  padding: 14px !important;
+  margin-top: 10px;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+}
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 24px 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+.divider span {
+  padding: 0 12px;
+}
+.googleBtn {
+  width: 100%;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  padding: 12px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s !important;
+}
+.googleBtn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+.googleIcon {
+  width: 20px;
+  height: 20px;
+}
+.authFooter {
+  margin-top: 32px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.textLink {
+  background: none;
+  border: none;
+  color: var(--judge);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 4px;
+  text-decoration: underline;
+}
+.textLink:hover {
+  color: white;
+}
+
+/* --- Verdict Feature --- */
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.declareBtn {
+  padding: 8px 20px !important;
+  font-size: 14px !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  border-radius: 20px !important;
+  background: linear-gradient(135deg, var(--judge), #ffc400) !important;
+  color: #000 !important;
+  border: none !important;
+  box-shadow: 0 4px 15px rgba(255, 174, 0, 0.4);
+}
+.pulse-gold {
+  animation: pulseGold 2s infinite;
+}
+@keyframes pulseGold {
+  0% { box-shadow: 0 0 0 0 rgba(255, 174, 0, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 174, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 174, 0, 0); }
+}
+.verdictModal {
+  width: 95% !important;
+  max-width: 600px !important;
+  max-height: 85vh !important;
+  overflow-y: auto !important;
+  border: 2px solid var(--judge) !important;
+  padding: 40px !important;
+  display: flex;
+  flex-direction: column;
+}
+.verdictHeader {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.verdictIcon {
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+.verdictTitle {
+  font-size: 28px;
+  color: var(--judge);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+.winnerStatus {
+  font-size: 24px;
+  font-weight: 900;
+  text-align: center;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 174, 0, 0.1);
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+.prosWinner { color: #ff4444; }
+.defWinner { color: #44ff44; }
+.judgementBox {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 24px;
+  border-radius: 12px;
+  border-left: 4px solid var(--judge);
+  margin-bottom: 32px;
+}
+.judgementBox h3 {
+  font-size: 14px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+}
+.judgementBox p {
+  line-height: 1.8;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
+}
+.verdictActions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.authWarning {
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 20px;
+  animation: fadeIn 0.3s ease-out;
+}
+.authWarning.error {
+  background: rgba(255, 68, 68, 0.1);
+  border: 1px solid rgba(255, 68, 68, 0.2);
+  color: #ff4444;
+}
+.authWarning.success {
+  background: rgba(68, 255, 68, 0.1);
+  border: 1px solid rgba(68, 255, 68, 0.2);
+  color: #44ff44;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.welcomeUser {
+  margin-top: 16px;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--muted);
+  animation: fadeIn 0.5s ease-out;
+}
+.welcomeUser span {
+  color: var(--judge);
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(255, 174, 0, 0.3);
+}
