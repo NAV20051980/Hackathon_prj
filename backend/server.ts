@@ -94,8 +94,8 @@ Respond logically in 2-3 lines.`;
 
   // Create messages array - Groq works best with simple user/assistant pattern
   const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
-    ...history.map((h) => ({
-      role: (h.role === 'assistant' ? 'assistant' : 'user') as const,
+    ...history.map((h: HistoryTurn) => ({
+      role: (h.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
       content: h.text,
     })),
     { role: 'user', content: fullPrompt },
@@ -144,22 +144,61 @@ async function validateStatementWithLLM(statement: string): Promise<boolean> {
     'Respond ONLY with: VALID or INVALID',
   ].join('\n')
 
+  return statement.trim().length >= 10
+}
+
+async function validateEvidenceWithVision(
+  imageBuffer: Buffer,
+  mimeType: string,
+  description: string,
+): Promise<{ valid: boolean; reason: string }> {
+  const base64Image = imageBuffer.toString('base64')
+  const prompt = [
+    `User Evidence Description: "${description}"`,
+    '',
+    'Analyze the provided image and description. Determine if this constitutes a valid legal document or relevant evidence for a courtroom simulation (e.g., contract, ID, receipt, photo of a crime scene, forensic report).',
+    '',
+    'If the image is irrelevant (e.g., food, memes, unrelated objects, common household items without legal context), reject it.',
+    '',
+    'Respond STRICTLY in the following format:',
+    'VALID: [Brief 1-sentence reason]',
+    'OR',
+    'INVALID: [Brief 1-sentence reason why it is not courtroom-appropriate]',
+  ].join('\n')
+
   try {
     const completion = await groq.chat.completions.create({
-      model: 'llama-3.1-8b-instant',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 10,
-      temperature: 0.3,
+      model: 'llama-3.2-11b-vision-preview',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            {
+              type: 'image_url',
+              image_url: { url: `data:${mimeType};base64,${base64Image}` },
+            },
+          ],
+        },
+      ],
+      max_tokens: 150,
+      temperature: 0.2,
     })
+
     const raw = validationReplyContent(completion?.choices?.[0]?.message?.content)
-    const normalized = raw.toUpperCase()
-    if (normalized.startsWith('VALID')) return true
-    if (normalized.startsWith('INVALID')) return false
-  } catch {
-    // fall through
+    const normalized = raw.trim().toUpperCase()
+
+    if (normalized.startsWith('VALID')) {
+      return { valid: true, reason: raw.replace(/^VALID:?\s*/i, '').trim() }
+    } else if (normalized.startsWith('INVALID')) {
+      return { valid: false, reason: raw.replace(/^INVALID:?\s*/i, '').trim() }
+    }
+  } catch (err) {
+    console.error('Vision validation error', err)
   }
 
-  return statement.trim().length >= 10
+  // Fallback if AI fails or returns weird format
+  return { valid: true, reason: 'Accepted (AI validation omitted due to system error)' }
 }
 
 app.post('/api/validate', async (req, res) => {
@@ -186,7 +225,7 @@ app.post('/api/respond', async (req, res) => {
         fileType: String(rec.fileType ?? ''),
       }
     })
-    .filter((e) => e.description.trim().length > 0 || e.fileType.trim().length > 0)
+    .filter((e: EvidenceSummary) => e.description.trim().length > 0 || e.fileType.trim().length > 0)
 
   if (!['prosecution', 'defence', 'judge'].includes(role)) {
     return res.status(400).json({ error: 'Invalid role' })
@@ -281,7 +320,7 @@ app.post('/chat', async (req, res) => {
       const hText = String(rec.content ?? '').trim()
       return { role: hRole, content: hText }
     })
-    .filter((item) => item.content.length > 0)
+    .filter((item: { role: string; content: string }) => item.content.length > 0)
 
   if (!message) return res.status(400).json({ error: 'message is required' })
   if (!['prosecutor', 'defense'].includes(role)) {
@@ -289,7 +328,7 @@ app.post('/chat', async (req, res) => {
   }
 
   const courtRole = role === 'prosecutor' ? 'prosecution' : 'defence'
-  const historyPayload = history.map((h) => ({
+  const historyPayload = history.map((h: { role: string; content: string }) => ({
     role: h.role,
     text: h.content,
   }))
@@ -301,6 +340,60 @@ app.post('/chat', async (req, res) => {
   } catch (err) {
     console.error('Groq chat error', err)
     return res.json({ reply: 'Error: AI failed to respond' })
+  }
+})
+
+app.post('/api/verdict', async (req, res) => {
+  const historyRaw = req.body?.history
+  const caseText = String(req.body?.caseText ?? '')
+  const evidenceRaw = Array.isArray(req.body?.evidence) ? req.body.evidence : []
+  
+  const history = normalizeHistoryPayload(historyRaw)
+  const evidence: EvidenceSummary[] = evidenceRaw.map((e: any) => ({
+    description: String(e.description ?? ''),
+    fileType: String(e.fileType ?? '')
+  }))
+
+  const prompt = [
+    'Evaluate the following courtroom simulation and provide a final verdict.',
+    '',
+    'Case Details:',
+    caseText,
+    '',
+    'Trial History:',
+    history.map(h => `[${h.role.toUpperCase()}] ${h.text}`).join('\n'),
+    '',
+    'Evidence Presented:',
+    evidence.map(e => `- ${e.description} (${e.fileType})`).join('\n'),
+    '',
+    'Rules for Judgment:',
+    '1. Analyze the strength of arguments from both Prosecution and Defence.',
+    '2. Consider the relevance and impact of the evidence.',
+    '3. Decide on a winner: PROSECUTION or DEFENCE. There are NO TIES. You must pick the side that argued more convincingly based on the law and evidence presented.',
+    '4. Provide a detailed, formal reasoning in 3-4 sentences.',
+    '',
+    'Respond STRICTLY in JSON format:',
+    '{ "winner": "PROSECUTION", "judgement": "..." } or { "winner": "DEFENCE", "judgement": "..." }',
+  ].join('\n')
+
+  try {
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.1-8b-instant',
+      messages: [{ role: 'user', content: prompt }],
+      response_format: { type: 'json_object' },
+      temperature: 0.6,
+    })
+
+    const result = JSON.parse(completion.choices[0]?.message?.content || '{}')
+    // Fallback if AI skips the winner key or returns invalid
+    if (!result.winner || !['PROSECUTION', 'DEFENCE'].includes(result.winner.toUpperCase())) {
+      result.winner = (Math.random() > 0.5) ? 'PROSECUTION' : 'DEFENCE' // Ultimate fallback
+    }
+    
+    res.json(result)
+  } catch (err) {
+    console.error('Verdict AI error', err)
+    res.status(500).json({ error: 'Judge failed to reach a verdict.' })
   }
 })
 
@@ -341,11 +434,27 @@ const upload = multer({
   },
 })
 
-app.post('/upload-evidence', upload.single('file'), (req, res) => {
+app.post('/upload-evidence', upload.single('file'), async (req, res) => {
   const description = String(req.body?.description ?? '')
   const file = req.file
   if (!file) return res.status(400).json({ error: 'Missing file' })
   if (!description.trim()) return res.status(400).json({ error: 'Missing description' })
+
+  // AI Validation for Images
+  if (file.mimetype.startsWith('image/')) {
+    try {
+      const { valid, reason } = await validateEvidenceWithVision(file.buffer || fs.readFileSync(file.path), file.mimetype, description)
+      if (!valid) {
+        // Since we are using diskStorage above line 307, the file is already on disk.
+        // We should delete it if it's invalid.
+        if (file.path) fs.unlinkSync(file.path)
+        return res.status(400).json({ error: `Evidence Rejected: ${reason}` })
+      }
+    } catch (vErr) {
+      console.error('Validation step encountered an error', vErr)
+      // We continue if validation fails to not block the user entirely
+    }
+  }
 
   const fileUrl = `/uploads/${file.filename}`
   res.json({
